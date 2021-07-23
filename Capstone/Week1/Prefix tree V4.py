@@ -1,0 +1,178 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  3 15:24:02 2020
+
+@author: lovro
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4417569/
+"""
+
+
+class Node:
+    def __init__ (self, label, id, low, up, chain_len):
+        self.label = label
+        self.id = id
+        self.Lbound = low
+        self.Ubound = up
+        self.chain_len = chain_len
+        self.branch = dict()
+        self.remain = None
+
+def FindPSPairs(G, PT):
+    for S in range(0, len(G)):
+        print("\n", S+1, G[S], "\n")
+        #start with 1
+        charPointer = 1
+        #char = G[S][charPointer]
+        #print("CHAR:", char, "suffix", G[S][charPointer:])
+        while charPointer < len(G[S]): 
+            print("\n########### charPointer", charPointer, G[S][charPointer], "suffix", G[S][charPointer:])
+            v = charPointer
+            currentNode = PT
+            path_len = 0
+            local_position = 1
+            while True:
+                #print("\n", G[S][v], "-> v vs len(G[S]):   ", v, len(G[S]))
+                print("\n", G[S][v], "-> v vs len(G[S]) - 1:   ", v, len(G[S]) - 1)
+                if v == len(G[S]) - 1:
+                #if v == len(G[S]):
+                    #we have a pS match in range
+                    print("checking for a PS match", currentNode.Lbound, currentNode.Ubound)
+                    for i in range(currentNode.Lbound, currentNode.Ubound + 1):
+                        print("....compare ", GR[i-1], "suffix", GR[i-1][local_position-1:],"to:", G[S][v])
+                    
+                    
+                    print("processing matches")
+                    
+                    
+                    pass
+                    break
+                #endif
+                print("...current node::", currentNode.label, currentNode.Lbound, currentNode.Ubound, currentNode.chain_len)
+                print("local_position", local_position)
+                if currentNode.chain_len >= local_position:
+                    g1 = G[S][v]
+                    g2 = currentNode.remain[local_position]
+                    print("currentNode.chain_len >= local_position", currentNode.chain_len , local_position, "gq,g2", g1, g2)
+                    if g1 == g2:
+                        local_position +=1
+                        path_len +=1
+                        v += 1
+                    else:
+                        break
+                else:
+                     g1 = G[S][v]
+                     print("se<rching for branch", g1, ":", currentNode.branch.keys())
+                     if g1 in currentNode.branch.keys(): 
+                         currentNode = currentNode.branch[g1]
+                         print("branched to:", currentNode.label, currentNode.Lbound, currentNode.Ubound, currentNode.chain_len)
+                         local_position +=1
+                         path_len +=1
+                         v += 1
+                     else:
+                         print("no branch")
+                         break
+                #endif
+            #end while
+            charPointer += 1 
+        #end while
+    #end for
+                
+
+
+def PrefixTree(G):
+    #root = Node("root",-1, -1, -1, -1)
+    root = Node("root",-1, 1, len(G), 0)
+    
+    for S in range(0, len(G)):
+        #print("\n", S+1, G[S], "\n")
+        currentNode = root
+        local_position = 1
+        path_len = 0
+        charPointer = 0
+        c = G[S][charPointer]
+        #print("Char:", c)
+        
+        while charPointer < len(G[S]): 
+        
+            if currentNode.chain_len >= local_position:
+                  
+                if c == currentNode.remain[local_position-1]:
+                    #print("  EQUAL  ", c, currentNode.remain[local_position-1])
+                    local_position += 1
+                    path_len += 1
+                    charPointer += 1
+                    c = G[S][charPointer]
+                    
+                else:
+                    v2 =Node(currentNode.remain[local_position-1], currentNode.id, currentNode.Lbound, currentNode.Ubound - 1, currentNode.chain_len - local_position)
+                    
+                    if v2.chain_len == 0:
+                        v2.remain = None
+                    else:
+                        v2.remain = currentNode.remain[local_position:local_position + v2.chain_len]
+                    
+                    #print("creating new node v2", v2.label, v2.Lbound, v2.Ubound, "ChainLen:", v2.chain_len, "remain", v2.remain)
+                    v2.branch = currentNode.branch.copy()
+                    currentNode.branch[v2.label] = v2
+                    path_len +=1
+                    
+                    v3 = Node(c,S, S+1, S+1, len(G[S]) - path_len)
+                    
+                    if path_len >= len(G[S]):
+                        v3.remain = None
+                    else:
+                        v3.remain = G[S][path_len:]
+                        
+                    #print("creating new node v3", v3.label, v3.Lbound, v3.Ubound, "ChainLen:", v3.chain_len, "remain", v3.remain)
+                    currentNode.branch[v3.label] = v3
+                    currentNode.chain_len = local_position - 1
+                    
+                          
+                    if currentNode.chain_len == 0:
+                        currentNode.remain = None
+                    else:
+                        currentNode.remain = currentNode.remain[:currentNode.chain_len]
+                        
+                    #print("old currentNode", currentNode.label, currentNode.Lbound, currentNode.Ubound, "ChainLen:", currentNode.chain_len, "remain", currentNode.remain)
+                    break
+            else:
+                if c in currentNode.branch.keys():
+                    currentNode = currentNode.branch[c]
+                    #print("changed to node", currentNode.label,"currentNode.chain_len:", currentNode.chain_len, "\n")
+                    local_position = 1
+                    path_len += 1
+                    charPointer += 1
+                    c = G[S][charPointer]
+                    currentNode.Ubound = S + 1
+                else:
+                    #print("NO BRANCH!")
+                    path_len += 1
+                    chain_length = len(G[S]) - path_len
+                    branch = Node(c, S, S+1, S+1, chain_length)                    
+                    currentNode.branch[c] = branch
+                    
+                    if branch.chain_len == 0:
+                        branch.remain = None
+                    else:
+                        branch.remain = G[S][path_len:]
+
+                    #print("creating NEW NODE", branch.label, branch.Lbound, branch.Ubound, "ChainLen:", branch.chain_len, "remain", branch.remain)
+                    break
+    return root
+
+#text = open("tests/100orig.txt", "r", encoding="utf8") 
+#text = open("tests/102.txt", "r", encoding="utf8")
+#text = open("tests/102.txt", "r", encoding="utf8")
+text = open("tests/103.txt", "r", encoding="utf8")
+#text = open("tests/104.txt", "r", encoding="utf8")
+#text = open("tests/105.txt", "r", encoding="utf8")
+#text = open("tests/106.txt", "r", encoding="utf8")
+
+
+GR = [line.strip() for line in text.readlines()]
+GR = sorted(GR)
+#G = G[:3]
+
+PT = PrefixTree(GR)
+R = GR[1:2]
+FindPSPairs(R, PT)
